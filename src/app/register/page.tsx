@@ -10,24 +10,75 @@ import { API_BASE_URL } from "@/config/constants";
 
 type AuthTab = "wallet" | "email" | "telegram";
 
+const REF_STORAGE_KEY = "bitton_ref_code";
+
+/** Persist ref code to localStorage so it survives redirects */
+function useSponsorCode(): string {
+  const searchParams = useSearchParams();
+  const refFromUrl = searchParams.get("ref") || "";
+
+  const [sponsorCode, setSponsorCode] = useState<string>(() => {
+    // On first render, prefer URL param, then localStorage
+    if (typeof window !== "undefined") {
+      return refFromUrl || localStorage.getItem(REF_STORAGE_KEY) || "";
+    }
+    return refFromUrl;
+  });
+
+  useEffect(() => {
+    // If ref is in URL, save it
+    if (refFromUrl) {
+      localStorage.setItem(REF_STORAGE_KEY, refFromUrl);
+      setSponsorCode(refFromUrl);
+    } else {
+      // Try to recover from localStorage
+      const stored = localStorage.getItem(REF_STORAGE_KEY);
+      if (stored) setSponsorCode(stored);
+    }
+  }, [refFromUrl]);
+
+  return sponsorCode;
+}
+
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<div className="text-gray-400 p-6">Loading...</div>}>
+    <Suspense fallback={<RegisterLoading />}>
       <RegisterContent />
     </Suspense>
   );
 }
 
+function RegisterLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 max-w-md w-full text-center">
+        <div className="text-gray-400">Loading registration...</div>
+      </div>
+    </div>
+  );
+}
+
 function RegisterContent() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
-  const sponsorCode = searchParams.get("ref") || "";
+  const { isAuthenticated, isLoading } = useAuth();
+  const sponsorCode = useSponsorCode();
   const [activeTab, setActiveTab] = useState<AuthTab>("wallet");
+  const [ready, setReady] = useState(false);
+
+  // Wait a tick for localStorage/searchParams to resolve
+  useEffect(() => {
+    const timer = setTimeout(() => setReady(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
-    if (isAuthenticated) router.replace("/dashboard");
-  }, [isAuthenticated, router]);
+    if (!isLoading && isAuthenticated) router.replace("/dashboard");
+  }, [isAuthenticated, isLoading, router]);
+
+  // Don't show "Referral Required" until we've had a chance to read localStorage
+  if (!ready || isLoading) {
+    return <RegisterLoading />;
+  }
 
   if (!sponsorCode) {
     return (
@@ -123,13 +174,15 @@ function WalletRegister({ sponsorCode }: { sponsorCode: string }) {
         return;
       }
 
+      // Clear stored ref code on successful registration
+      localStorage.removeItem(REF_STORAGE_KEY);
       login(data.accessToken, data.refreshToken, data.user);
       router.replace("/dashboard");
     } catch (err: any) {
       if (err?.message?.includes("User rejected")) {
         setError("Signature rejected.");
       } else {
-        setError("Unable to connect to server.");
+        setError("Unable to connect to server. Please wait a moment and try again.");
       }
     } finally {
       setLoading(false);
@@ -188,7 +241,7 @@ function EmailRegister({ sponsorCode }: { sponsorCode: string }) {
       setSessionId(data.sessionId);
       setStep("otp");
     } catch {
-      setError("Unable to connect to server.");
+      setError("Unable to connect to server. Please wait a moment and try again.");
     } finally {
       setLoading(false);
     }
@@ -212,7 +265,7 @@ function EmailRegister({ sponsorCode }: { sponsorCode: string }) {
       }
       setStep("wallet");
     } catch {
-      setError("Unable to connect to server.");
+      setError("Unable to connect to server. Please wait a moment and try again.");
     } finally {
       setLoading(false);
     }
@@ -261,6 +314,7 @@ function EmailRegister({ sponsorCode }: { sponsorCode: string }) {
         setError(data.error || "Registration failed");
         return;
       }
+      localStorage.removeItem(REF_STORAGE_KEY);
       login(data.accessToken, data.refreshToken, data.user);
       router.replace("/dashboard");
     } catch (err: any) {
@@ -279,20 +333,19 @@ function EmailRegister({ sponsorCode }: { sponsorCode: string }) {
       {/* Step indicator */}
       <div className="flex items-center justify-center gap-2 mb-2">
         {["Email", "Verify", "Wallet"].map((label, i) => {
-          const stepIndex = i;
           const currentIndex = step === "email" ? 0 : step === "otp" ? 1 : 2;
           return (
             <div key={label} className="flex items-center gap-2">
               <div
                 className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
-                  stepIndex <= currentIndex
+                  i <= currentIndex
                     ? "bg-brand-600 text-white"
                     : "bg-gray-700 text-gray-400"
                 }`}
               >
-                {stepIndex + 1}
+                {i + 1}
               </div>
-              <span className={`text-xs ${stepIndex <= currentIndex ? "text-white" : "text-gray-500"}`}>
+              <span className={`text-xs ${i <= currentIndex ? "text-white" : "text-gray-500"}`}>
                 {label}
               </span>
               {i < 2 && <div className="w-6 h-px bg-gray-700" />}
@@ -406,7 +459,6 @@ function TelegramRegister({ sponsorCode }: { sponsorCode: string }) {
       .catch(() => {});
   }, []);
 
-  // Telegram Login Widget callback
   const handleTelegramAuth = useCallback(async (telegramData: any) => {
     setLoading(true);
     setError("");
@@ -432,17 +484,13 @@ function TelegramRegister({ sponsorCode }: { sponsorCode: string }) {
     }
   }, []);
 
-  // Load Telegram widget script
   useEffect(() => {
     if (!botConfigured || !botUsername || step !== "telegram") return;
 
-    // Make callback available globally
     (window as any).onTelegramAuth = handleTelegramAuth;
 
     const container = document.getElementById("telegram-login-container");
     if (!container) return;
-
-    // Clear previous widget
     container.innerHTML = "";
 
     const script = document.createElement("script");
@@ -479,6 +527,7 @@ function TelegramRegister({ sponsorCode }: { sponsorCode: string }) {
         setError(data.error || "Registration failed");
         return;
       }
+      localStorage.removeItem(REF_STORAGE_KEY);
       login(data.accessToken, data.refreshToken, data.user);
       router.replace("/dashboard");
     } catch (err: any) {
