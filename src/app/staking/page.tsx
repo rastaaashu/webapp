@@ -27,6 +27,7 @@ export default function StakingPage() {
   const [amount, setAmount] = useState("");
   const [programType, setProgramType] = useState<0 | 1>(0);
   const [step, setStep] = useState<"idle" | "approve" | "stake">("idle");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [now, setNow] = useState(Math.floor(Date.now() / 1000));
 
   // Unstake modal
@@ -81,12 +82,18 @@ export default function StakingPage() {
   }, [unstakeHook.isSuccess, refetchStakes]);
 
   const handleStartStake = () => {
+    if (isSubmitting) return;
     if (parsedAmount <= 0n) return;
-    const currentAllowance = (allowance as bigint) || 0n;
-    if (currentAllowance >= parsedAmount) {
-      setStep("stake");
-    } else {
-      setStep("approve");
+    setIsSubmitting(true);
+    try {
+      const currentAllowance = (allowance as bigint) || 0n;
+      if (currentAllowance >= parsedAmount) {
+        setStep("stake");
+      } else {
+        setStep("approve");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -166,6 +173,7 @@ export default function StakingPage() {
           <div className="relative mb-4">
             <input
               type="text"
+              inputMode="decimal"
               placeholder="Amount (BTN)"
               value={amount}
               onChange={(e) => {
@@ -223,7 +231,7 @@ export default function StakingPage() {
           {step === "idle" && (
             <button
               onClick={handleStartStake}
-              disabled={!isActive || parsedAmount <= 0n}
+              disabled={!isActive || parsedAmount <= 0n || isSubmitting}
               className="w-full bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-2.5 rounded-lg font-medium transition-colors"
             >
               Stake {config.name.split(" ")[0]}
@@ -234,13 +242,20 @@ export default function StakingPage() {
             <TxButton
               label={`Approve ${amount} BTN`}
               pendingLabel="Approving..."
-              onClick={() =>
-                approveHook.approve(
-                  CONTRACTS.btnToken,
-                  CONTRACTS.stakingVault,
-                  parsedAmount
-                )
-              }
+              onClick={() => {
+                if (isSubmitting) return;
+                setIsSubmitting(true);
+                try {
+                  approveHook.approve(
+                    CONTRACTS.btnToken,
+                    CONTRACTS.stakingVault,
+                    parsedAmount
+                  );
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }}
+              disabled={isSubmitting}
               isPending={approveHook.isPending}
               isSuccess={approveHook.isSuccess}
               isError={approveHook.isError}
@@ -253,7 +268,16 @@ export default function StakingPage() {
             <TxButton
               label={`Confirm Stake`}
               pendingLabel="Staking..."
-              onClick={() => stakeHook.stake(parsedAmount, programType)}
+              onClick={() => {
+                if (isSubmitting) return;
+                setIsSubmitting(true);
+                try {
+                  stakeHook.stake(parsedAmount, programType);
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }}
+              disabled={isSubmitting}
               isPending={stakeHook.isPending}
               isSuccess={stakeHook.isSuccess}
               isError={stakeHook.isError}
@@ -314,7 +338,7 @@ export default function StakingPage() {
 
       {/* Active Stakes Table */}
       <h3 className="text-lg font-bold mb-4">Your Stakes</h3>
-      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-x-auto">
         {stakesLoading ? (
           <div className="p-6 space-y-3">
             {[1, 2].map((i) => (

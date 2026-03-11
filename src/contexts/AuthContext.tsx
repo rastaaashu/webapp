@@ -17,6 +17,7 @@ interface AuthUser {
   evmAddress: string | null;
   telegramId?: string | null;
   authMethod?: string;
+  createdAt?: string;
 }
 
 interface AuthContextType {
@@ -27,6 +28,7 @@ interface AuthContextType {
   login: (accessToken: string, refreshToken: string, user: AuthUser) => void;
   logout: () => Promise<void>;
   refreshAccessToken: () => Promise<boolean>;
+  authFetch: (url: string, options?: RequestInit) => Promise<Response>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -86,6 +88,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const data = await res.json();
       localStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken);
+      if (data.refreshToken) {
+        localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+      }
       setAccessToken(data.accessToken);
       setUser(data.user);
       return true;
@@ -94,6 +99,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return false;
     }
   }, [logout]);
+
+  // Authenticated fetch with automatic 401 retry via token refresh
+  const authFetch = useCallback(
+    async (url: string, options: RequestInit = {}): Promise<Response> => {
+      const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+      const headers = new Headers(options.headers);
+      if (token) {
+        headers.set("Authorization", `Bearer ${token}`);
+      }
+
+      let res = await fetch(url, { ...options, headers });
+
+      if (res.status === 401) {
+        // Try refreshing the token
+        const refreshed = await refreshAccessToken();
+        if (refreshed) {
+          const newToken = localStorage.getItem(ACCESS_TOKEN_KEY);
+          headers.set("Authorization", `Bearer ${newToken}`);
+          res = await fetch(url, { ...options, headers });
+        }
+      }
+
+      return res;
+    },
+    [refreshAccessToken]
+  );
 
   // On mount, try to restore session from refresh token
   useEffect(() => {
@@ -117,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         refreshAccessToken,
+        authFetch,
       }}
     >
       {children}

@@ -1,11 +1,20 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 import { LayoutShell } from "@/components/layout/LayoutShell";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export const metadata: Metadata = {
   title: "BitTON.AI",
   description: "BTN Staking & Rewards Platform",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -17,7 +26,9 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <Providers>
-          <LayoutShell>{children}</LayoutShell>
+          <ErrorBoundary>
+            <LayoutShell>{children}</LayoutShell>
+          </ErrorBoundary>
         </Providers>
       </body>
     </html>
