@@ -305,3 +305,4 @@ Tier 3: $100, 1.2x multiplier, 10 matching levels
 Short Staking: 30 days lock, tier multiplier
 Long Staking: 180 days lock, 1.2x multiplier (all tiers)
 ```
+

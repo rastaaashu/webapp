@@ -63,3 +63,4 @@ export function GatedConnectButton({ agreed }: GatedConnectButtonProps) {
     </ConnectButton.Custom>
   );
 }
+

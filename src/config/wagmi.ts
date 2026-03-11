@@ -9,3 +9,4 @@ export const config = getDefaultConfig({
   chains: [baseSepolia, base],
   ssr: true,
 });
+

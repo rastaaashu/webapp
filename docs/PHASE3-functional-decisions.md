@@ -16,3 +16,4 @@
 8. **Vesting release**: User-triggered. Shows live accumulation counter.
 9. **Withdrawal**: Direct from WithdrawalWallet contract. Shows weekly allowance if cap is set.
 10. **Admin access**: Check on-chain roles (DEFAULT_ADMIN_ROLE, OPERATOR_ROLE). Hide admin nav if no role.
+

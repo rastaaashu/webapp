@@ -35,3 +35,4 @@
 10. **History** - All transaction events in one table
 11. **Profile** - Link wallet/email, account settings
 12. **Admin** - System overview, fund rewards, batch settle, user lookup
+

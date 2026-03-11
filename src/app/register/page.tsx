@@ -566,3 +566,4 @@ function TelegramRegister({ agreed, sponsorCode, refValid }: { agreed: boolean; 
     </div>
   );
 }
+

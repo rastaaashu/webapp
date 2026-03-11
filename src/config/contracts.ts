@@ -14,3 +14,4 @@ export const CONTRACTS = {
 
 export const BTN_DECIMALS = 6;
 export const USDT_DECIMALS = 6;
+

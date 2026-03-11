@@ -25,3 +25,4 @@ export function isTelegramBrowser(): boolean {
     !!(window as any).TelegramWebviewProxy
   );
 }
+

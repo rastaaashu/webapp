@@ -98,3 +98,4 @@ Owner/Admin: 0x1DaE2C7aeC8850f1742fE96045c23d1AaE3FCf2A
 8. Show loading skeletons while data loads
 9. Transaction flow: Idle → Wallet Prompt → Pending → Success/Error
 ```
+

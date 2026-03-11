@@ -28,3 +28,4 @@
 - Referral binding: Old system uses sponsor code at registration (backend), new system uses on-chain registerReferrer. Decision: Keep BOTH - backend stores sponsor relationship, frontend triggers on-chain registerReferrer when user first stakes.
 - Bonus claim: No separate "claim" - bonuses auto-add to pending rewards during staking/settlement.
 - Dashboard stats: Mix of on-chain reads + backend API for historical data.
+

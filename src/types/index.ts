@@ -89,3 +89,4 @@ export interface WriteHookReturn {
   hash: `0x${string}` | undefined;
   reset: () => void;
 }
+

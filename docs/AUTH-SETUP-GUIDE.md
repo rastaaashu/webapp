@@ -91,3 +91,4 @@ Uses [RainbowKit](https://www.rainbowkit.com/) + [wagmi](https://wagmi.sh/) for 
 3. **HTTPS** - Required for Telegram widget and security
 4. **Telegram Bot** - Create via BotFather, set domain
 5. **SMTP** - Configure email provider for OTP delivery
+
