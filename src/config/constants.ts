@@ -39,10 +39,10 @@ export const TIER_CONFIGS: Record<1 | 2 | 3, TierConfig> = {
 };
 
 // ─── Program Configurations ───
-export const PROGRAM_CONFIGS: Record<0 | 1, ProgramConfig> = {
+export const PROGRAM_CONFIGS: Record<0 | 1 | 2, ProgramConfig> = {
   0: {
     type: 0,
-    name: "Short Staking",
+    name: "Easy Start",
     lockDays: 30,
     lockSeconds: 30 * 24 * 60 * 60,
     dailyRate: 0.005,
@@ -52,9 +52,19 @@ export const PROGRAM_CONFIGS: Record<0 | 1, ProgramConfig> = {
   },
   1: {
     type: 1,
-    name: "Long Staking",
+    name: "Short Allocation",
     lockDays: 180,
     lockSeconds: 180 * 24 * 60 * 60,
+    dailyRate: 0.005,
+    multiplierNote: "Tier multiplier (1.0x / 1.1x / 1.2x)",
+    earlyExitAllowed: false,
+    earlyExitPenaltyBps: 0,
+  },
+  2: {
+    type: 2,
+    name: "Long Allocation",
+    lockDays: 360,
+    lockSeconds: 360 * 24 * 60 * 60,
     dailyRate: 0.005,
     multiplierNote: "Fixed 1.2x multiplier",
     earlyExitAllowed: false,

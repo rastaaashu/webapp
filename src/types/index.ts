@@ -5,13 +5,13 @@ export type Address = `0x${string}`;
 export type VaultTier = 0 | 1 | 2 | 3; // 0 = none, 1 = T1, 2 = T2, 3 = T3
 
 // ─── Staking Program Types ───
-export type ProgramType = 0 | 1; // 0 = Short (30d), 1 = Long (180d)
+export type ProgramType = 0 | 1 | 2; // 0 = Easy Start (30d), 1 = Short (180d), 2 = Long (360d)
 
 // ─── Stake Info (matches contract struct) ───
 export interface StakeInfo {
   amount: bigint;
   startTime: bigint;
-  programType: number; // 0 = Short (30d), 1 = Long (180d)
+  programType: number; // 0 = Easy Start (30d), 1 = Short (180d), 2 = Long (360d)
   lastRewardTime: bigint;
   active: boolean;
 }

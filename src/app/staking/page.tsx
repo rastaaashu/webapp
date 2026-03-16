@@ -25,7 +25,7 @@ export default function StakingPage() {
   const stakes = (stakesRaw as StakeInfo[] | undefined) || [];
 
   const [amount, setAmount] = useState("");
-  const [programType, setProgramType] = useState<0 | 1>(0);
+  const [programType, setProgramType] = useState<0 | 1 | 2>(0);
   const [step, setStep] = useState<"idle" | "approve" | "stake">("idle");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [now, setNow] = useState(Math.floor(Date.now() / 1000));
@@ -100,7 +100,7 @@ export default function StakingPage() {
   // Estimate rewards
   const config = PROGRAM_CONFIGS[programType];
   const tierMultiplier =
-    programType === 1
+    programType === 2
       ? 1.2
       : tier === 3
       ? 1.2
@@ -124,7 +124,7 @@ export default function StakingPage() {
     <div>
       <h2 className="text-2xl font-bold mb-2">Staking</h2>
       <p className="text-gray-400 text-sm mb-6">
-        Stake BTN tokens to earn daily rewards. Choose between Short (30 days) or Long (180 days) programs.
+        Stake BTN tokens to earn daily rewards. Choose Easy Start (30d), Short (180d), or Long (360d) allocation.
       </p>
 
       {!isActive && (
@@ -150,22 +150,33 @@ export default function StakingPage() {
               className={clsx(
                 "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
                 programType === 0
-                  ? "bg-blue-600 text-white"
+                  ? "bg-green-600 text-white"
                   : "bg-gray-800 text-gray-400 hover:text-white"
               )}
             >
-              Short (30d)
+              Easy Start (30d)
             </button>
             <button
               onClick={() => setProgramType(1)}
               className={clsx(
                 "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
                 programType === 1
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-800 text-gray-400 hover:text-white"
+              )}
+            >
+              Short (180d)
+            </button>
+            <button
+              onClick={() => setProgramType(2)}
+              className={clsx(
+                "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
+                programType === 2
                   ? "bg-purple-600 text-white"
                   : "bg-gray-800 text-gray-400 hover:text-white"
               )}
             >
-              Long (180d)
+              Long (360d)
             </button>
           </div>
 
@@ -204,7 +215,7 @@ export default function StakingPage() {
               <span>{(config.dailyRate * 100).toFixed(1)}%</span>
             </div>
             <div className="flex justify-between text-gray-400">
-              <span>Multiplier ({programType === 1 ? "Long" : tierName(tier)})</span>
+              <span>Multiplier ({programType === 2 ? "Long" : tierName(tier)})</span>
               <span>{tierMultiplier}x</span>
             </div>
             <div className="flex justify-between text-gray-400">
@@ -305,8 +316,12 @@ export default function StakingPage() {
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
           <h3 className="text-lg font-bold mb-4">Program Details</h3>
           <div className="space-y-4">
-            {([0, 1] as const).map((pt) => {
+            {([0, 1, 2] as const).map((pt) => {
               const c = PROGRAM_CONFIGS[pt];
+              const principalNote =
+                pt === 0
+                  ? "Principal returned at end of lock"
+                  : "Principal distributed via rewards";
               return (
                 <div
                   key={pt}
@@ -322,11 +337,12 @@ export default function StakingPage() {
                     <li>Lock Period: {c.lockDays} days</li>
                     <li>Daily Rate: {(c.dailyRate * 100).toFixed(1)}%</li>
                     <li>Multiplier: {c.multiplierNote}</li>
+                    <li>{principalNote}</li>
                     <li>
                       Early Exit:{" "}
                       {c.earlyExitAllowed
                         ? `Allowed (${c.earlyExitPenaltyBps / 100}% penalty)`
-                        : "Not allowed"}
+                        : "Not allowed (fully locked)"}
                     </li>
                   </ul>
                 </div>
@@ -366,7 +382,7 @@ export default function StakingPage() {
             <tbody>
               {stakes.map((stake, index) => {
                 const c =
-                  PROGRAM_CONFIGS[stake.programType as 0 | 1] ||
+                  PROGRAM_CONFIGS[stake.programType as 0 | 1 | 2] ||
                   PROGRAM_CONFIGS[0];
                 const lockEnd = Number(stake.startTime) + c.lockSeconds;
                 const remaining = lockEnd - now;
@@ -385,6 +401,8 @@ export default function StakingPage() {
                       <span
                         className={
                           stake.programType === 0
+                            ? "text-green-400"
+                            : stake.programType === 1
                             ? "text-blue-400"
                             : "text-purple-400"
                         }
@@ -464,9 +482,11 @@ export default function StakingPage() {
             {(() => {
               const s = stakes[unstakeIndex];
               const c =
-                PROGRAM_CONFIGS[s.programType as 0 | 1] || PROGRAM_CONFIGS[0];
+                PROGRAM_CONFIGS[s.programType as 0 | 1 | 2] || PROGRAM_CONFIGS[0];
               const lockEnd = Number(s.startTime) + c.lockSeconds;
               const isEarlyExit = now < lockEnd;
+              const isEasyStart = s.programType === 0;
+              const isLocked = (s.programType === 1 || s.programType === 2) && isEarlyExit;
 
               return (
                 <div className="space-y-4">
@@ -479,7 +499,13 @@ export default function StakingPage() {
                       <span className="text-gray-400">Program</span>
                       <span>{c.name}</span>
                     </div>
-                    {isEarlyExit && s.programType === 0 && (
+                    {isEasyStart && !isEarlyExit && (
+                      <div className="flex justify-between text-green-400">
+                        <span>Principal Returned</span>
+                        <span>{formatBTN(s.amount)} BTN</span>
+                      </div>
+                    )}
+                    {isEasyStart && isEarlyExit && (
                       <div className="flex justify-between text-yellow-400">
                         <span>Early Exit Penalty (15%)</span>
                         <span>
@@ -487,20 +513,25 @@ export default function StakingPage() {
                         </span>
                       </div>
                     )}
-                    {isEarlyExit && s.programType === 1 && (
+                    {!isEasyStart && !isEarlyExit && (
+                      <p className="text-gray-400 text-xs">
+                        Principal will be sent to treasury. Your return was earned via daily rewards.
+                      </p>
+                    )}
+                    {isLocked && (
                       <p className="text-red-400 text-xs">
-                        Long stakes cannot be exited early. Lock period has not ended.
+                        {c.name} cannot be exited early. Lock period has not ended.
                       </p>
                     )}
                   </div>
 
-                  {isEarlyExit && s.programType === 0 && (
+                  {isEasyStart && isEarlyExit && (
                     <p className="text-yellow-400 text-xs">
                       Warning: Early exit incurs a 15% penalty on your staked amount. The penalty goes to the treasury.
                     </p>
                   )}
 
-                  {(!isEarlyExit || s.programType === 0) && (
+                  {!isLocked && (
                     <TxButton
                       label="Confirm Unstake"
                       pendingLabel="Unstaking..."

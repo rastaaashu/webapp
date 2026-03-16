@@ -34,7 +34,7 @@ export default function DashboardPage() {
   useEffect(() => {
     // Only run countdown timer when there are active stakes with pending unlocks
     const hasActiveCountdowns = activeStakes.some((s) => {
-      const config = PROGRAM_CONFIGS[s.programType as 0 | 1] || PROGRAM_CONFIGS[0];
+      const config = PROGRAM_CONFIGS[s.programType as 0 | 1 | 2] || PROGRAM_CONFIGS[0];
       const lockEnd = Number(s.startTime) + config.lockSeconds;
       return lockEnd - Math.floor(Date.now() / 1000) > 0;
     });
@@ -197,7 +197,7 @@ export default function DashboardPage() {
               {stakes.map((stake, index) => {
                 if (!stake.active) return null;
                 const config =
-                  PROGRAM_CONFIGS[stake.programType as 0 | 1] ||
+                  PROGRAM_CONFIGS[stake.programType as 0 | 1 | 2] ||
                   PROGRAM_CONFIGS[0];
                 const lockEnd =
                   Number(stake.startTime) + config.lockSeconds;
@@ -212,6 +212,8 @@ export default function DashboardPage() {
                       <span
                         className={
                           stake.programType === 0
+                            ? "text-green-400"
+                            : stake.programType === 1
                             ? "text-blue-400"
                             : "text-purple-400"
                         }
